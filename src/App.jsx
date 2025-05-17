@@ -1,11 +1,21 @@
-import React from 'react'
+import React, { useState } from "react";
+import Chat from "./Chat.jsx";
+import Navbar from "./Navbar.jsx";
+import Result from "./Result.jsx";
 
 const App = () => {
-  return (
-    <div className='bg-yellow-600'>
-      hello jee
-    </div>
-  )
-}
+  const [activeTab, setActiveTab] = useState("Result");
 
-export default App
+  return (
+    <>
+      <Navbar activeLabel={activeTab} onNavClick={setActiveTab} />
+      <Result activeTab={activeTab} />
+      <Chat activeTab={activeTab} /> {/* Conditionally render Chat component */}
+      {/* Example for other tabs - you would create these components */}
+      {/* {activeTab === "Reviews" && <ReviewsComponent />} */}
+      {/* {activeTab === "Explain" && <ExplainComponent />} */}
+    </>
+  );
+};
+
+export default App;
