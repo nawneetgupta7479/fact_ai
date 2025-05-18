@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaUserCircle, FaRobot } from 'react-icons/fa';
+import { FaPaperPlane, FaUserCircle, FaRobot, FaSpinner } from 'react-icons/fa';
+import { factCheckClaim } from './services/aiService';
 
-const Chat = ({ activeTab }) => {
+const Chat = ({ activeTab, onClaimSubmit }) => {
   const [messages, setMessages] = useState([
     { id: 1, text: "Hello! How can I help you today?", sender: 'bot', timestamp: new Date() },
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -18,8 +20,8 @@ const Chat = ({ activeTab }) => {
     setInputValue(e.target.value);
   };
 
-  const handleSendMessage = () => {
-    if (inputValue.trim() === '') return;
+  const handleSendMessage = async () => {
+    if (inputValue.trim() === '' || isProcessing) return;
 
     const newMessage = {
       id: Date.now(),
@@ -30,16 +32,39 @@ const Chat = ({ activeTab }) => {
     setMessages((prevMessages) => [...prevMessages, newMessage]);
     setInputValue('');
 
-    // Simulate bot reply
-    setTimeout(() => {
-      const botReply = {
-        id: Date.now() + 1,
-        text: `You said: "${inputValue}". I am a simple bot.`,
-        sender: 'bot',
-        timestamp: new Date(),
-      };
-      setMessages((prevMessages) => [...prevMessages, botReply]);
-    }, 1000);
+    try {
+      setIsProcessing(true);
+      
+      // Update Result component's state to show loading
+      onClaimSubmit({
+        isTrue: false,
+        explanation: "Processing...",
+        fullResponse: "",
+        isLoading: true,
+        error: null
+      });
+      
+      // Perform factchecking
+      const result = await factCheckClaim(inputValue);
+      
+      // Update Result component with factcheck results
+      onClaimSubmit({
+        ...result,
+        isLoading: false,
+        error: null
+      });
+    } catch (error) {
+      console.error("Error processing claim:", error);
+      onClaimSubmit({
+        isTrue: false,
+        explanation: "",
+        fullResponse: "",
+        isLoading: false,
+        error: "Failed to verify the claim. Please try again."
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -96,13 +121,19 @@ const Chat = ({ activeTab }) => {
             rows="1"
             className="flex-grow p-3 bg-gray-700/60 border border-gray-600 rounded-xl text-gray-100  focus-outline-none  outline-none resize-none scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-700/50"
             style={{ minHeight: '48px', maxHeight: '120px' }} // Control min/max height
+            disabled={isProcessing}
           />
           <button
             onClick={handleSendMessage}
             className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
             aria-label="Send message"
+            disabled={isProcessing || !inputValue.trim()}
           >
-            <FaPaperPlane size={20} />
+            {isProcessing ? (
+              <FaSpinner className="animate-spin" />
+            ) : (
+              <FaPaperPlane size={20} />
+            )}
           </button>
         </div>
       </div>
